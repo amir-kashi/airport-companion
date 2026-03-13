@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-uv-template"
+version = "0.1.0"
+description = "A Template for Python projects"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Amir T. Kashi", email = "amirtkashi@egmail.com" },
+]
+dependencies = [
+    "python-dotenv",
+    "streamlit>=1.55.0",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.3",          # security scanner
+    "black>=26.1.0",          # formatter
+    "ipykernel>=7.2.0",       # Jupyter support
+    "isort>=8.0.0",           # import sorter
+    "mypy>=1.10.0",           # type checker
+    "pre-commit>=3.3.4",      # git hooks
+    "pytest>=9.0.2",          # testing
+    "pytest-cov>=7.0.0",      # test coverage
+    "ruff>=0.15.2",           # linter
+    "safety>=3.7.0",          # dependency vulnerability checker
+]
+
+# Tool configuration
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+line_length = 88
+src_paths = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.mypy]
+# Keep mypy informative but permissive so CI/pre-commit does not fail on third-party typing gaps.
+ignore_missing_imports = true
+follow_imports = "skip"
+disable_error_code = ["import-untyped"]
