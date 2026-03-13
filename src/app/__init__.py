@@ -1,3 +1,3 @@
 from importlib.metadata import version
 
-__version__ = version("python-uv-template")
+__version__ = version("airport-companion")
