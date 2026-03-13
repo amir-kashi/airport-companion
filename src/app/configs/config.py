@@ -7,7 +7,8 @@ load_dotenv()
 
 
 class DefaultConfig:
-    """Bot Configuration"""
 
-    # Sample parameter from the .env file
-    API_KEY = os.environ.get("API_KEY", "")
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
+    OCR_MODEL = os.environ.get("OCR_MODEL", "")
+    EXTRACT_MODEL = os.environ.get("EXTRACT_MODEL", "")
