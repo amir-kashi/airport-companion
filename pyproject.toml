@@ -12,8 +12,11 @@ authors = [
     { name = "Amir T. Kashi", email = "amirtkashi@gmail.com" },
 ]
 dependencies = [
+    "openai>=1.108.1",
+    "pydantic>=2.11.9",
     "python-dotenv",
     "streamlit>=1.55.0",
+    "tavily-python>=0.7.12",
 ]
 
 [dependency-groups]
