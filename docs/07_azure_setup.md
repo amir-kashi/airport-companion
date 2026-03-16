@@ -204,7 +204,7 @@ ENVIRONMENT=production
 
 # 7. Verify Container Deployment
 
-Before deployment, ensure the required GitHub repository secrets are configured, especially the ACR and Azure secrets listed under **CD Secrets** in [CI/CD](06_cicd.md) setup. 
+Before deployment, ensure the required GitHub repository secrets are configured, especially the ACR and Azure secrets listed under **CD Secrets** in [CI/CD](06_cicd.md) setup.
 
 Once a container image exists in ACR:
 
