@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import logging
 
+from pydantic import BaseModel, Field
+
 from app.configs.config import DefaultConfig
 from app.core.domain import BoardingPassData
 from app.core.logging import setup_logging
@@ -13,6 +15,11 @@ CONFIG = DefaultConfig()
 # Logger setup
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+class _OcrData(BaseModel):
+    raw_text: str | None = None
+    ocr_conf: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 def run_ocr(
@@ -42,7 +49,7 @@ def run_ocr(
         client = OpenAI(api_key=api_key)
         base64_img = base64.b64encode(image_bytes).decode("ascii")
 
-        response = client.responses.create(
+        response = client.responses.parse(
             model=CONFIG.OCR_MODEL,
             input=[
                 {
@@ -51,9 +58,13 @@ def run_ocr(
                         {
                             "type": "input_text",
                             "text": (
-                                "Extract all text from this boarding pass exactly as written. "
-                                "Return plain text only."
-                                "If the image is not a boarding pass, return an empty string."
+                                "Extract the raw text and confidence score from the "
+                                "following image of a boarding pass. The confidence "
+                                "score should be a float between 0 and 1, "
+                                "representing the OCR model's confidence in the "
+                                "extracted text. If the text cannot be extracted, "
+                                "return an empty string for raw_text and a confidence "
+                                "score of 0."
                             ),
                         },
                         {
@@ -63,9 +74,10 @@ def run_ocr(
                     ],
                 }
             ],
+            text_format=_OcrData,
         )
-        text = (response.output_text or "").strip()
-        confidence = 0.9 if text else 0.0
+        text = (response.output_parsed.raw_text or "").strip()
+        confidence = response.output_parsed.ocr_conf
         notes = (
             ["OCR completed via OpenAI Vision model."]
             if text
