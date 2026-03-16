@@ -1,48 +1,88 @@
-# Python UV Template
+# Boarding Pass OCR - Nearest Lounge & Destination Advisor
 
-A modern Python project template with:
+Streamlit prototype: upload a boarding pass image, extract key flight fields, discover internet-sourced lounges, rank options, and produce a concise travel advisory with explicit assumptions.
 
-- `src/app` layout for clean imports
-- `uv` for dependency and environment management
-- Pre-commit hooks (Black, Ruff, trailing-whitespace)
-- Logging setup with `configs/logging_config.ini` and `logs/` folder
-- Pytest for testing
-- Docker-ready for production deployment
+## Why Streamlit
 
-This template is designed as a **starting point for any Python project**, whether backend services, scripts, or ML/AI pipelines.
+- Zero-friction demo flow
+- Single codebase with visible reasoning trace
+- Fast iteration without sacrificing modular architecture
 
----
+## Product Flow
 
-## Using as Template
+- Scan tab:
+	- Upload boarding pass image
+	- OCR output shown directly
+	- Manual fallback text input for low-confidence OCR
+- Analysis tab:
+	- Structured extraction result
+	- Agent notes (assumptions, confidence, trade-offs)
+	- Lounge candidates and ranking rationale
+- Advisory tab:
+	- Final lounge recommendation
+	- Destination context and arrival estimate
+	- Guardrails, citations, and uncertainty disclosure
 
-1. Copy this repository as a starting point for your new project.
-2. Rename your project in `pyproject.toml`:
+## Internal Architecture
 
-```toml
-[project]
-name = "my-new-project"
+- `src/app/core/ocr_service.py`
+	- OCR entry point
+	- Uses OpenAI vision when configured
+	- Falls back to manual text input
+- `src/app/core/extractor_agent.py`
+	- Parses airport, destination, terminal, gate, flight number, departure time
+	- LLM-first extraction with regex fallback
+	- Terminal inference from airport/gate conventions (best effort)
+- `src/app/core/discovery_engine.py`
+	- Public internet lounge discovery via Tavily search
+	- Normalizes lounge records and ranks by constraints
+	- Opening-hours overlap filtering (now to departure)
+- `src/app/core/advisory_agent.py`
+	- Builds concise recommendation + destination context
+	- Adds guardrails and uncertainty disclosures
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+uv sync
 ```
 
-3. Run `uv sync` to regenerate the lock file.
-4. Update `src/app/` package name if desired (also update imports if necessary).
-5. Adjust logging, scripts, and configs for your new project.
+2. Configure environment variables as needed:
 
----
+```env
+OPENAI_API_KEY=...
+TAVILY_API_KEY=...
+OCR_MODEL=gpt-4.1-mini
+EXTRACT_MODEL=gpt-4.1-mini
+```
 
-## Documentation
+3. Run the app:
 
-See `docs/` for:
+```bash
+uv run streamlit run src/app/main.py
+```
 
-* [Quick Start](docs/01_quick_start.md)
-* [Project Structure](docs/02_project_structure.md)
-* [Dependency Management](docs/03_dependencies.md)
-* [Pre commit Hooks](docs/04_pre_commit_hooks.md)
-* [Docker Deployment](docs/05_docker.md)
-* [CI/CD Setup](docs/06_cicd.md)
-* [Azure Setup](docs/07_azure_setup.md)
+## Test Coverage (Minimal)
 
----
+- Opening-hours overlap filter
+- Advisory includes lounge recommendation and destination context
 
-## License
+Run tests:
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+```bash
+uv run pytest
+```
+
+## Notes and Trade-offs
+
+- Lounge discovery requires a search provider key (`TAVILY_API_KEY`) for internet-sourced results.
+- Terminal inference is heuristic and intentionally disclosed in advisory notes.
+- Gate is treated as informational only; advisory warns about gate-change risk.
+
+## Suggested Demo Scenarios
+
+1. Complete boarding pass with terminal present.
+2. Missing terminal, inferred from gate convention.
+3. No eligible lounge found, advisory explains constraints.
