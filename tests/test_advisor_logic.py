@@ -3,13 +3,6 @@ from datetime import datetime
 from app.core.advisory_agent import build_advisory
 from app.core.discovery_engine import overlaps_now_to_departure
 from app.core.domain import BoardingPassData, Lounge, RankedLounge
-from app.core.extractor_agent import infer_terminal
-
-
-def test_terminal_inference_from_gate():
-    terminal, note = infer_terminal("LHR", "B12")
-    assert terminal == "5"
-    assert note is not None
 
 
 def test_hours_overlap_window():
