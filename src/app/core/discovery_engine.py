@@ -4,6 +4,8 @@ import logging
 import re
 from datetime import datetime, timedelta
 
+from pydantic import BaseModel, Field
+
 from app.configs.config import DefaultConfig
 from app.core.domain import BoardingPassData, Lounge, RankedLounge
 from app.core.logging import setup_logging
@@ -49,6 +51,50 @@ def _extract_terminal_hint(text: str) -> str | None:
     return match.group(1).upper() if match else None
 
 
+class _Lounge(BaseModel):
+    name: str
+    opening_hours: str
+    amenities: list[str] = Field(default_factory=list)
+    access_notes: str = ""
+
+
+def _extract_with_llm(title: str, content: str, raw_content: str) -> _Lounge | None:
+    api_key = CONFIG.OPENAI_API_KEY
+    if not api_key:
+        return None
+
+    try:
+        from openai import OpenAI
+    except Exception:
+        return None
+
+    try:
+        client = OpenAI(api_key=api_key)
+        response = client.responses.parse(
+            model=CONFIG.EXTRACT_MODEL,
+            input=[
+                {
+                    "role": "system",
+                    "content": ("Extract lounge information. "),
+                },
+                {"role": "user", "content": f"{title}\n{content}\n{raw_content}"},
+            ],
+            text_format=_Lounge,
+        )
+        parsed = response.output_parsed
+        print("LLM parsed output:\n", vars(parsed) if parsed else "None")
+        if not parsed:
+            return None
+        return _Lounge(
+            name=parsed.name,
+            opening_hours=parsed.opening_hours,
+            amenities=parsed.amenities or [],
+            access_notes=parsed.access_notes or "",
+        )
+    except Exception:
+        return None
+
+
 def discover_lounges(
     airport_code: str, terminal: str | None = None
 ) -> tuple[list[Lounge], list[str]]:
@@ -72,19 +118,32 @@ def discover_lounges(
         resp = client.search(query=query, max_results=8)
         lounges: list[Lounge] = []
         for idx, item in enumerate(resp.get("results", []), start=1):
-            content = item.get("content", "")
             title = item.get("title", "")
+            content = item.get("content", "")
+            raw_content = item.get("raw_content", "")
+            lounge_info = _extract_with_llm(title, content, raw_content)
+
             term = _extract_terminal_hint(f"{title} {content}")
-            lounge_name = title.split("|")[0].strip() or f"Lounge {idx}"
+            # lounge_name = title.split("|")[0].strip() or f"Lounge {idx}"
             lounges.append(
                 Lounge(
-                    lounge_id=f"{airport_code}-{idx}",
-                    name=lounge_name,
+                    lounge_id=f"{airport_code}-{term or 'Unknown'}-{idx}",
+                    name=(
+                        lounge_info.name
+                        if lounge_info
+                        else title.strip() or f"Lounge {idx}"
+                    ),
                     airport_code=airport_code,
                     terminal=term,
-                    opening_hours="Unknown",
-                    amenities=["Wi-Fi", "Seating"],
-                    access_notes="Verify access policy with your fare/status before entering.",
+                    opening_hours=(
+                        lounge_info.opening_hours if lounge_info else "Unknown"
+                    ),
+                    amenities=lounge_info.amenities if lounge_info else ["Unknown"],
+                    access_notes=(
+                        lounge_info.access_notes
+                        if lounge_info
+                        else "Verify access policy with your fare/status before entering."
+                    ),
                     source_url=item.get("url", ""),
                 )
             )
